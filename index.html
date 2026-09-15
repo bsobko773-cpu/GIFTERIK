@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram Mini App - Drop Hub</title>
+    <title>Telegram Stars & NFT Hub</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Telegram WebApp SDK -->
@@ -13,57 +13,53 @@
 </head>
 <body class="bg-slate-950 text-white font-sans min-h-screen flex flex-col items-center p-4">
 
-    <!-- Шапка профілю -->
+    <!-- Шапка профиля -->
     <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl mb-4">
-        <h1 class="text-xl font-bold text-orange-500 mb-1">🎁 Telegram Drop Hub</h1>
-        <p id="user-info" class="text-sm text-slate-400">Авторизація...</p>
-        <div class="mt-3 flex gap-4">
-            <div class="bg-slate-800 px-3 py-2 rounded-xl flex-1">
-                <span class="text-xs text-slate-400 block">Зірки (Stars)</span>
-                <span id="stars-balance" class="text-lg font-bold text-yellow-400">0 ⭐</span>
-            </div>
-            <div class="bg-slate-800 px-3 py-2 rounded-xl flex-1">
-                <span class="text-xs text-slate-400 block">Золото</span>
-                <span id="gold-balance" class="text-lg font-bold text-amber-500">0.00 G</span>
+        <h1 class="text-xl font-bold text-yellow-500 mb-1">⭐ Telegram Stars Hub</h1>
+        <p id="user-info" class="text-sm text-slate-400">Авторизация...</p>
+        <div class="mt-3">
+            <div class="bg-slate-800 px-4 py-3 rounded-xl flex justify-between items-center">
+                <span class="text-xs text-slate-400">Баланс звёзд</span>
+                <span id="stars-balance" class="text-xl font-bold text-yellow-400">0 ⭐</span>
             </div>
         </div>
     </div>
 
-    <!-- Блок ігрової механіки / лутбоксу -->
+    <!-- Блок лутбокса -->
     <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col items-center text-center">
-        <h2 class="text-lg font-semibold mb-2">Відкрити кейс / Дроп</h2>
-        <p class="text-xs text-slate-400 mb-6">Вибивай зірки, золото або майбутні NFT!</p>
+        <h2 class="text-lg font-semibold mb-2">Открыть кейс</h2>
+        <p class="text-xs text-slate-400 mb-6">Выбивай звёзды или эксклюзивные NFT!</p>
         
-        <div id="case-box" class="w-32 h-32 bg-slate-800 border-2 border-dashed border-orange-500/50 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-inner transition-transform">
-            📦
+        <div id="case-box" class="w-32 h-32 bg-slate-800 border-2 border-dashed border-yellow-500/50 rounded-2xl flex items-center justify-center text-3xl mb-6 shadow-inner transition-transform">
+            🎁
         </div>
 
-        <button onclick="openCase()" class="w-full py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 font-bold rounded-xl shadow-lg transition active:scale-95">
-            Відкрити кейс (10 ⭐)
+        <button onclick="openCase()" class="w-full py-3 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-slate-950 font-bold rounded-xl shadow-lg transition active:scale-95">
+            Открыть кейс (10 ⭐)
         </button>
     </div>
 
     <script>
-        // Ініціалізація Supabase
+        // Инициализация Supabase
         const SUPABASE_URL = "https://jbqeyufcyikvndrczzcy.supabase.co";
         const SUPABASE_ANON_KEY = "sb_publishable_qhFuAOkyGyIfVka4VQ_I-A_fodB92rk";
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // Ініціалізація Telegram WebApp
+        // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Отримуємо дані користувача з Telegram (або тестовий дефолт для браузера)
+        // Данные пользователя Telegram
         const user = tg.initDataUnsafe?.user;
-        const telegramId = user ? user.id : 999999999; // Тестовий ID для ПК-браузера
+        const telegramId = user ? user.id : 999999999;
         const username = user ? (user.username || user.first_name) : "TestUser";
 
         let userProfile = null;
 
         async function initApp() {
-            document.getElementById('user-info').innerText = `Привіт, ${username}!`;
+            document.getElementById('user-info').innerText = `Привет, ${username}!`;
 
-            // Перевіряємо, чи є користувач у базі, якщо немає — створюємо
+            // Проверяем наличие профиля в Supabase
             let { data, error } = await supabase
                 .from('profiles')
                 .select('*')
@@ -71,16 +67,14 @@
                 .single();
 
             if (error || !data) {
-                // Створюємо нового гравця з початковим балансом
+                // Создаём нового игрока
                 const { data: newData, error: insertError } = await supabase
                     .from('profiles')
-                    .insert([{ telegram_id: telegramId, username: username, balance_stars: 50, balance_gold: 10.0 }])
+                    .insert([{ telegram_id: telegramId, username: username, balance_stars: 50 }])
                     .select()
                     .single();
 
-                if (!insertError) {
-                    userProfile = newData;
-                }
+                if (!insertError) userProfile = newData;
             } else {
                 userProfile = data;
             }
@@ -91,37 +85,34 @@
         function updateUI() {
             if (userProfile) {
                 document.getElementById('stars-balance').innerText = `${userProfile.balance_stars} ⭐`;
-                document.getElementById('gold-balance').innerText = `${userProfile.balance_gold} G`;
             }
         }
 
         async function openCase() {
+            if (!userProfile || userProfile.balance_stars < 10) {
+                alert("Недостаточно звёзд на балансе!");
+                return;
+            }
+
             const box = document.getElementById('case-box');
             box.classList.add('animate-bounce');
 
-            // Симуляція відкриття (поки що просто крутимо анімацію)
             setTimeout(async () => {
                 box.classList.remove('animate-bounce');
                 
-                // Приклад оновлення балансу в базі (зменшуємо зірки на 10 для прикладу)
-                if (userProfile && userProfile.balance_stars >= 10) {
-                    userProfile.balance_stars -= 10;
-                    
-                    // Зберігаємо зміни в Supabase
-                    await supabase
-                        .from('profiles')
-                        .update({ balance_stars: userProfile.balance_stars })
-                        .eq('telegram_id', telegramId);
+                // Списываем 10 звёзд
+                userProfile.balance_stars -= 10;
+                
+                await supabase
+                    .from('profiles')
+                    .update({ balance_stars: userProfile.balance_stars })
+                    .eq('telegram_id', telegramId);
 
-                    updateUI();
-                    alert("Кейс успішно відкрито! Ви витратили 10 зірок.");
-                } else {
-                    alert("Недостатньо зірок на балансі!");
-                }
+                updateUI();
+                alert("Кейс открыт! С баланса списано 10 ⭐.");
             }, 1000);
         }
 
-        // Запуск ініціалізації при завантаженні сторінки
         initApp();
     </script>
 </body>
