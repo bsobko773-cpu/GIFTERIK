@@ -3,385 +3,446 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Telegram Stars Cases</title>
+    <title>Gifterik Cases</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 15px rgba(234, 179, 8, 0.2); }
-            50% { box-shadow: 0 0 30px rgba(234, 179, 8, 0.6); }
+        body {
+            background-color: #0b0e14;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            touch-action: manipulation;
         }
-        .glow-active { animation: pulse-glow 2s infinite; }
+        /* Анімація та стиль рулетки */
+        .roulette-wrapper {
+            position: relative;
+            width: 100%;
+            height: 130px;
+            overflow: hidden;
+            border-radius: 12px;
+            background: #151a23;
+            border: 2px solid #2a3241;
+        }
+        .roulette-wrapper::before {
+            content: '';
+            position: absolute;
+            top: 0; bottom: 0; left: 50%;
+            width: 4px;
+            background: #f59e0b;
+            box-shadow: 0 0 10px #f59e0b;
+            z-index: 10;
+            transform: translateX(-50%);
+        }
+        .roulette-track {
+            display: flex;
+            position: absolute;
+            left: 0;
+            top: 15px;
+            height: 100px;
+            transition: transform 5s cubic-bezier(0.15, 0.9, 0.15, 1);
+            will-change: transform;
+        }
+        .roulette-card {
+            width: 90px;
+            height: 100px;
+            margin: 0 5px;
+            flex-shrink: 0;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 4px;
+            text-align: center;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.5);
+        }
+        /* Рідкісні предмети */
+        .rarity-common { background: #1f2937; border: 1px solid #4b5563; }
+        .rarity-rare { background: #1e3a8a; border: 1px solid #3b82f6; }
+        .rarity-epic { background: #581c87; border: 1px solid #a855f7; }
+        .rarity-legendary { background: #78350f; border: 1px solid #f59e0b; }
+        .rarity-nft { background: #831843; border: 1px solid #ec4899; }
         
-        @keyframes case-shake {
-            0% { transform: rotate(0deg) scale(1); }
-            20% { transform: rotate(-8deg) scale(1.05); }
-            40% { transform: rotate(8deg) scale(1.05); }
-            60% { transform: rotate(-8deg) scale(1.1); }
-            80% { transform: rotate(8deg) scale(1.1); }
-            100% { transform: rotate(0deg) scale(1); }
-        }
-        .anim-shake { animation: case-shake 0.8s ease-in-out infinite; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col justify-between p-4 select-none">
+<body class="pb-24">
 
-    <!-- Хедер профиля -->
-    <header class="w-full max-w-md mx-auto bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl p-4 shadow-2xl flex items-center justify-between sticky top-2 z-10">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-500 to-amber-300 flex items-center justify-center font-bold text-slate-950 shadow-md">
-                👤
+    <!-- МОДАЛЬНЕ ВІКНО АВТОРИЗАЦІЇ (ПІН-КОД) -->
+    <div id="auth-modal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl">
+            <div class="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fa-solid fa-key"></i>
+            </div>
+            <h2 class="text-xl font-bold mb-2">Авторизация</h2>
+            <p class="text-xs text-gray-400 mb-6">Введите Никнейм и уникальный PIN-код, полученный в Telegram-боте (команда /code)</p>
+
+            <div class="space-y-3 mb-6">
+                <input type="text" id="auth-nickname" placeholder="Ваш Никнейм" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-center focus:outline-none focus:border-amber-500 transition">
+                <input type="password" maxlength="6" id="auth-pin" placeholder="6-значный PIN" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-center font-mono text-lg tracking-widest focus:outline-none focus:border-amber-500 transition">
+            </div>
+
+            <button onclick="loginWithPin()" class="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-black font-bold py-3 rounded-xl transition duration-200">
+                Войти в аккаунт
+            </button>
+        </div>
+    </div>
+
+    <!-- ХЕДЕР -->
+    <header class="bg-gray-900/80 backdrop-blur border-b border-gray-800 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 bg-gray-800 border border-gray-700 rounded-full flex items-center justify-center text-amber-400 font-bold">
+                <i class="fa-solid fa-user"></i>
             </div>
             <div>
-                <h1 id="user-name" class="text-sm font-bold truncate max-w-[110px]">Загрузка...</h1>
-                <p class="text-[10px] text-emerald-400 font-semibold tracking-wider">● ONLINE</p>
+                <div id="user-nickname" class="font-bold text-sm leading-tight text-gray-200">Гость</div>
+                <div class="text-[10px] text-green-400 flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 bg-green-400 rounded-full"></span> ONLINE
+                </div>
             </div>
         </div>
-        
-        <!-- Баланс и кнопка Пополнения (+) -->
-        <div class="flex items-center gap-2">
-            <div class="bg-slate-950 border border-yellow-500/30 px-3 py-1.5 rounded-xl flex items-center gap-2 shadow-inner">
-                <span id="stars-balance" class="text-sm font-extrabold text-yellow-400">20 ⭐</span>
+
+        <div class="flex items-center space-x-2">
+            <div class="bg-gray-800 border border-gray-700 px-3 py-1.5 rounded-xl flex items-center space-x-1.5">
+                <span id="stars-balance" class="font-black text-amber-400 text-sm">0</span>
+                <span class="text-xs">⭐</span>
             </div>
-            <button onclick="openDepositModal()" class="w-8 h-8 bg-gradient-to-tr from-yellow-500 to-amber-400 text-slate-950 font-black rounded-xl flex items-center justify-center shadow-lg active:scale-95 transition text-lg">
-                +
+            <button onclick="openWithdrawModal()" class="bg-amber-500 hover:bg-amber-600 text-black font-bold p-2 rounded-xl transition active:scale-95" title="Вывод средств">
+                <i class="fa-solid fa-wallet"></i>
             </button>
         </div>
     </header>
 
-    <!-- Переключатель вкладок -->
-    <div class="w-full max-w-md mx-auto my-3 bg-slate-900 border border-slate-800 p-1 rounded-xl flex gap-1">
-        <button id="tab-cases-btn" onclick="switchTab('cases')" class="flex-1 py-2 rounded-lg font-bold text-xs bg-yellow-500 text-slate-950 transition">
-            🎁 Кейсы
-        </button>
-        <button id="tab-inventory-btn" onclick="switchTab('inventory')" class="flex-1 py-2 rounded-lg font-bold text-xs text-slate-400 hover:text-white transition">
-            🎒 Инвентарь
-        </button>
-    </div>
-
-    <!-- ВКЛАДКА 1: КЕЙСЫ -->
-    <main id="tab-cases" class="w-full max-w-md mx-auto my-auto space-y-4">
-        <div class="text-center my-2">
-            <h2 class="text-xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-500">
-                ЭКСКЛЮЗИВНЫЕ КЕЙСЫ
-            </h2>
-            <p class="text-xs text-slate-400 mt-0.5">Испытай удачу и выбей супер-редкие NFT!</p>
-        </div>
-
-        <div class="grid grid-cols-1 gap-3">
-            <!-- КЕЙС 1 -->
-            <div class="bg-slate-900/60 border border-slate-800 hover:border-yellow-500/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
-                <div class="flex items-center gap-3">
-                    <div class="w-14 h-14 bg-slate-800 rounded-xl flex items-center justify-center text-2xl shadow-inner">📦</div>
-                    <div>
-                        <h3 class="font-bold text-slate-100 text-sm">Стартовый Кейс</h3>
-                        <p class="text-[10px] text-slate-400">Дроп: 5-9 ⭐ или NFT (600 ⭐)</p>
-                    </div>
-                </div>
-                <button onclick="openCase('case_10', 10)" class="px-3.5 py-2 bg-gradient-to-r from-yellow-500 to-amber-500 text-slate-950 font-black text-xs rounded-xl active:scale-95 transition">
-                    10 ⭐
-                </button>
-            </div>
-
-            <!-- КЕЙС 2 -->
-            <div class="bg-slate-900/60 border border-slate-800 hover:border-amber-500/50 rounded-2xl p-4 flex items-center justify-between shadow-lg">
-                <div class="flex items-center gap-3">
-                    <div class="w-14 h-14 bg-amber-950/40 rounded-xl flex items-center justify-center text-2xl shadow-inner">🎁</div>
-                    <div>
-                        <h3 class="font-bold text-amber-400 text-sm">Редкий Кейс</h3>
-                        <p class="text-[10px] text-slate-400">Дроп: 40-85 ⭐ или NFT (5000 ⭐)</p>
-                    </div>
-                </div>
-                <button onclick="openCase('case_100', 100)" class="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-xs rounded-xl active:scale-95 transition">
-                    100 ⭐
-                </button>
-            </div>
-
-            <!-- КЕЙС 3 -->
-            <div class="bg-slate-900/60 border border-yellow-500/40 rounded-2xl p-4 flex items-center justify-between shadow-xl glow-active">
-                <div class="flex items-center gap-3">
-                    <div class="w-14 h-14 bg-yellow-500/20 rounded-xl flex items-center justify-center text-2xl shadow-inner">👑</div>
-                    <div>
-                        <h3 class="font-bold text-yellow-400 text-sm">VIP Кейс</h3>
-                        <p class="text-[10px] text-slate-400">Дроп: 400-850 ⭐ или NFT (50k ⭐)</p>
-                    </div>
-                </div>
-                <button onclick="openCase('case_1000', 1000)" class="px-3.5 py-2 bg-gradient-to-r from-yellow-400 to-yellow-600 text-slate-950 font-black text-xs rounded-xl active:scale-95 transition">
-                    1000 ⭐
-                </button>
-            </div>
-        </div>
-    </main>
-
-    <!-- ВКЛАДКА 2: ИНВЕНТАРЬ И ВЫВОД -->
-    <main id="tab-inventory" class="w-full max-w-md mx-auto my-auto space-y-4 hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
-            <div>
-                <h3 class="font-bold text-sm">Вывод Звёзд</h3>
-                <p class="text-[10px] text-slate-400">Минимальный вывод: 50 ⭐</p>
-            </div>
-            <button onclick="withdrawStarsPrompt()" class="px-3 py-1.5 bg-emerald-500 text-slate-950 font-black text-xs rounded-xl active:scale-95 transition">
-                Вывести ⭐
+    <!-- НАВІГАЦІЯ ТАБІВ -->
+    <div class="p-4">
+        <div class="bg-gray-900 p-1 rounded-xl flex border border-gray-800 mb-6">
+            <button id="tab-cases-btn" onclick="switchTab('cases')" class="flex-1 py-2 rounded-lg font-bold text-xs bg-amber-500 text-black transition">
+                <i class="fa-solid fa-box-open mr-1"></i> Кейсы
+            </button>
+            <button id="tab-inventory-btn" onclick="switchTab('inventory')" class="flex-1 py-2 rounded-lg font-bold text-xs text-gray-400 transition">
+                <i class="fa-solid fa-backpack mr-1"></i> Инвентарь
             </button>
         </div>
 
-        <h3 class="font-bold text-sm text-slate-300">Ваши NFT</h3>
-        <div id="inventory-list" class="grid grid-cols-2 gap-3 min-h-[150px]">
-            <p class="col-span-2 text-center text-xs text-slate-500 py-6">Загрузка инвентаря...</p>
+        <!-- ТАБ: КЕЙСИ -->
+        <div id="tab-cases" class="space-y-4">
+            <h1 class="text-lg font-black tracking-wide text-gray-300 uppercase text-center mb-2">Эксклюзивные Кейсы</h1>
+            <!-- Контейнер для 30 кейсів (генерується скриптом) -->
+            <div id="cases-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
         </div>
-    </main>
 
-    <!-- МОДАЛКА ДОНАТА (+) -->
-    <div id="deposit-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-300">
-        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center shadow-2xl">
-            <h3 class="text-lg font-black text-yellow-400 mb-2">Пополнение Звёзд</h3>
-            <p class="text-xs text-slate-400 mb-6">Выберите количество звёзд для покупки через Telegram Payments:</p>
-            
-            <div class="grid grid-cols-3 gap-3 mb-6">
-                <button onclick="buyStars(50)" class="bg-slate-800 hover:bg-slate-700 border border-yellow-500/30 p-3 rounded-2xl font-bold text-sm text-yellow-400">
-                    50 ⭐
-                </button>
-                <button onclick="buyStars(100)" class="bg-slate-800 hover:bg-slate-700 border border-yellow-500/30 p-3 rounded-2xl font-bold text-sm text-yellow-400">
-                    100 ⭐
-                </button>
-                <button onclick="buyStars(500)" class="bg-slate-800 hover:bg-slate-700 border border-yellow-500/30 p-3 rounded-2xl font-bold text-sm text-yellow-400">
-                    500 ⭐
-                </button>
+        <!-- ТАБ: ІНВЕНТАР -->
+        <div id="tab-inventory" class="hidden space-y-4">
+            <div class="flex justify-between items-center mb-2">
+                <h2 class="text-lg font-bold">Мои Предметы</h2>
+                <button onclick="loadInventory()" class="text-xs text-amber-400 hover:underline"><i class="fa-solid fa-rotate"></i> Обновить</button>
+            </div>
+            <div id="inventory-grid" class="grid grid-cols-2 gap-3">
+                <div class="col-span-2 text-center py-12 text-gray-500 text-sm">Инвентарь пуст</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНЕ ВІКНО ВІДКРИТТЯ КЕЙСУ (РУЛЕТКА) -->
+    <div id="roulette-modal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 w-full max-w-md text-center relative overflow-hidden">
+            <button onclick="closeRouletteModal()" class="absolute top-3 right-3 text-gray-400 hover:text-white text-xl z-20">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 id="modal-case-title" class="font-bold text-base mb-4 text-amber-400">Открытие Кейса</h3>
+
+            <!-- Рулетка -->
+            <div class="roulette-wrapper mb-6">
+                <div id="roulette-track" class="roulette-track"></div>
             </div>
 
-            <button onclick="closeDepositModal()" class="w-full py-3 bg-slate-800 text-slate-300 font-bold rounded-xl">
-                Отмена
+            <!-- Результат -->
+            <div id="roulette-result" class="hidden mb-6">
+                <div class="text-xs text-gray-400 mb-1">Вы выбили:</div>
+                <div id="result-item-name" class="text-lg font-black text-white mb-1">Предмет</div>
+                <div id="result-item-value" class="text-sm font-bold text-amber-400">0 ⭐</div>
+            </div>
+
+            <button id="start-spin-btn" onclick="spinRoulette()" class="w-full bg-amber-500 hover:bg-amber-600 text-black font-black py-3 rounded-xl transition active:scale-95">
+                КРУТИТЬ РУЛЕТКУ
             </button>
         </div>
     </div>
 
-    <!-- МОДАЛКА АНИМАЦИИ ВЫИГРЫША -->
-    <div id="drop-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4 z-50 hidden opacity-0 transition-opacity duration-300">
-        <div class="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-3xl p-6 text-center shadow-2xl relative flex flex-col items-center">
-            <h3 id="modal-title" class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-6">Открытие кейса...</h3>
-            <div id="case-box-anim" class="w-32 h-32 bg-slate-800 border-2 border-dashed border-yellow-500/50 rounded-3xl flex items-center justify-center text-5xl my-4 shadow-inner">🎁</div>
-            <div id="result-container" class="hidden my-2">
-                <div id="result-icon" class="text-6xl mb-2 animate-bounce">⭐</div>
-                <h4 id="result-name" class="text-xl font-black text-yellow-400">10 Звёзд</h4>
+    <!-- МОДАЛЬНЕ ВІКНО ВИВОДУ -->
+    <div id="withdraw-modal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-sm text-center">
+            <h3 class="text-lg font-bold mb-2">Заявка на вывод</h3>
+            <p class="text-xs text-gray-400 mb-4">Укажите количество Звёзд для вывода на ваш аккаунт Telegram</p>
+            <input type="number" id="withdraw-amount" placeholder="Количество ⭐" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-center mb-4 focus:outline-none focus:border-amber-500">
+            <div class="flex space-x-2">
+                <button onclick="closeWithdrawModal()" class="flex-1 bg-gray-800 text-gray-300 py-3 rounded-xl text-sm font-bold">Отмена</button>
+                <button onclick="submitWithdraw()" class="flex-1 bg-amber-500 text-black py-3 rounded-xl text-sm font-bold">Подать</button>
             </div>
-            <button id="close-modal-btn" onclick="closeModal()" class="w-full py-3.5 mt-6 bg-slate-800 text-white font-bold rounded-2xl hidden">
-                Забрать награду
-            </button>
         </div>
     </div>
 
+    <!-- JS ЛОГІКА ТА ВІЗУАЛ -->
     <script>
         const SUPABASE_URL = "https://jbqeyufcyikvndrczzcy.supabase.co";
-        const SUPABASE_ANON_KEY = "sb_publishable_qhFuAOkyGyIfVka4VQ_I-A_fodB92rk";
+        const SUPABASE_ANON_KEY = "sb_publishable_qhFuAOkyGyIfVka4VQ_I-A_fodB92rk"; // Твій публічний ключ
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        let currentUser = null;
+        let selectedCaseId = null;
+        let isSpinning = false;
 
-        const user = tg.initDataUnsafe?.user;
-        const telegramId = user ? user.id : 999999999;
-        const username = user ? (user.username || user.first_name) : "TestUser";
-
-        let currentBalance = 20;
-
-        async function initApp() {
-            document.getElementById('user-name').innerText = username;
-
-            let { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('telegram_id', telegramId)
-                .single();
-
-            if (error || !data) {
-                const { data: newData } = await supabase
-                    .from('profiles')
-                    .insert([{ telegram_id: telegramId, username: username, balance_stars: 20 }])
-                    .select()
-                    .single();
-
-                if (newData) currentBalance = newData.balance_stars;
-            } else {
-                currentBalance = data.balance_stars;
+        // Автоматична перевірка збереженого PIN
+        window.addEventListener('DOMContentLoaded', () => {
+            renderCases();
+            const savedPin = localStorage.getItem('app_pin');
+            const savedNick = localStorage.getItem('app_nick');
+            if (savedPin && savedNick) {
+                document.getElementById('auth-nickname').value = savedNick;
+                document.getElementById('auth-pin').value = savedPin;
+                loginWithPin();
             }
+        });
 
-            updateUI();
-        }
+        // 1. АВТОРИЗАЦІЯ ЧЕРЕЗ БЕКЕНД RPC
+        async function loginWithPin() {
+            const nickname = document.getElementById('auth-nickname').value.trim();
+            const pin = document.getElementById('auth-pin').value.trim();
 
-        function updateUI() {
-            document.getElementById('stars-balance').innerText = `${currentBalance} ⭐`;
-        }
-
-        // Переключение вкладок
-        function switchTab(tab) {
-            const casesTab = document.getElementById('tab-cases');
-            const inventoryTab = document.getElementById('tab-inventory');
-            const casesBtn = document.getElementById('tab-cases-btn');
-            const invBtn = document.getElementById('tab-inventory-btn');
-
-            if (tab === 'cases') {
-                casesTab.classList.remove('hidden');
-                inventoryTab.classList.add('hidden');
-                casesBtn.className = "flex-1 py-2 rounded-lg font-bold text-xs bg-yellow-500 text-slate-950 transition";
-                invBtn.className = "flex-1 py-2 rounded-lg font-bold text-xs text-slate-400 hover:text-white transition";
-            } else {
-                casesTab.classList.add('hidden');
-                inventoryTab.classList.remove('hidden');
-                invBtn.className = "flex-1 py-2 rounded-lg font-bold text-xs bg-yellow-500 text-slate-950 transition";
-                casesBtn.className = "flex-1 py-2 rounded-lg font-bold text-xs text-slate-400 hover:text-white transition";
-                loadInventory();
-            }
-        }
-
-        // Загрузка инвентаря
-        async function loadInventory() {
-            const list = document.getElementById('inventory-list');
-            list.innerHTML = `<p class="col-span-2 text-center text-xs text-slate-500 py-6">Загрузка...</p>`;
-
-            const { data, error } = await supabase
-                .from('user_inventory')
-                .select('id, status, items(name, value)')
-                .eq('telegram_id', telegramId);
-
-            if (error || !data || data.length === 0) {
-                list.innerHTML = `<p class="col-span-2 text-center text-xs text-slate-500 py-6">У вас пока нет NFT</p>`;
+            if (!nickname || pin.length !== 6) {
+                alert("Введите правильный Никнейм и 6-значный PIN!");
                 return;
             }
 
-            list.innerHTML = data.map(inv => `
-                <div class="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-col justify-between items-center text-center">
-                    <div class="text-3xl my-1">🖼️</div>
-                    <div class="font-bold text-xs truncate w-full mb-1">${inv.items.name}</div>
-                    ${inv.status === 'in_inventory' 
-                        ? `<button onclick="withdrawNFT(${inv.id})" class="w-full py-1.5 bg-yellow-500 text-slate-950 font-black text-[10px] rounded-xl active:scale-95 transition">Вывести</button>`
-                        : `<span class="text-[10px] text-amber-400 font-bold">Ожидает вывода...</span>`
-                    }
-                </div>
-            `).join('');
-        }
-
-        // Заявка на вывод NFT
-        async function withdrawNFT(inventoryId) {
-            const { data, error } = await supabase.rpc('request_nft_withdraw_rpc', {
-                user_id: telegramId,
-                inventory_item_id: inventoryId
-            });
-
-            if (error || !data.success) {
-                alert(data?.message || "Ошибка при выводе!");
-            } else {
-                alert("Заявка на вывод NFT успешно отправлена администратору!");
-                loadInventory();
-            }
-        }
-
-        // Заявка на вывод звёзд
-        async function withdrawStarsPrompt() {
-            const amountStr = prompt("Введите количество звёзд для вывода (мин. 50):");
-            const amount = parseInt(amountStr);
-
-            if (isNaN(amount) || amount < 50) {
-                alert("Минимальная сумма вывода — 50 звёзд!");
-                return;
-            }
-
-            const { data, error } = await supabase.rpc('request_stars_withdraw_rpc', {
-                user_id: telegramId,
-                amount: amount
-            });
-
-            if (error || !data.success) {
-                alert(data?.message || "Ошибка!");
-            } else {
-                currentBalance = data.new_balance;
-                updateUI();
-                alert("Заявка на вывод звёзд отправлена админу!");
-            }
-        }
-
-        // Открытие кейса
-        async function openCase(caseType, cost) {
-            if (currentBalance < cost) {
-                alert("Недостаточно звёзд!");
-                openDepositModal();
-                return;
-            }
-
-            const modal = document.getElementById('drop-modal');
-            const box = document.getElementById('case-box-anim');
-            const resultContainer = document.getElementById('result-container');
-            const closeBtn = document.getElementById('close-modal-btn');
-            const title = document.getElementById('modal-title');
-
-            resultContainer.classList.add('hidden');
-            closeBtn.classList.add('hidden');
-            box.classList.remove('hidden');
-            box.classList.add('anim-shake');
-            title.innerText = "Открытие кейса...";
-
-            modal.classList.remove('hidden');
-            setTimeout(() => modal.classList.remove('opacity-0'), 10);
-
-            const { data, error } = await supabase.rpc('open_case_rpc', {
-                user_id: telegramId,
-                target_case: caseType,
-                case_cost: cost
-            });
-
-            setTimeout(() => {
-                box.classList.remove('anim-shake');
-
-                if (error || !data || !data.success) {
-                    closeModal();
-                    alert(data?.message || "Ошибка сервера!");
+            try {
+                // Виклик безпечної RPC функції авторизації
+                const { data, error } = await supabase.rpc('auth_by_pin', { p_nickname: nickname, p_pin: pin });
+                
+                if (error || !data.success) {
+                    alert(data?.message || "Ошибка авторизации: неверный PIN или ник");
                     return;
                 }
 
-                currentBalance = data.new_balance;
-                updateUI();
+                currentUser = data.user;
+                localStorage.setItem('app_pin', pin);
+                localStorage.setItem('app_nick', nickname);
 
-                box.classList.add('hidden');
-                title.innerText = "Поздравляем!";
-                document.getElementById('result-icon').innerText = data.item_type === 'stars' ? '⭐' : '🖼️';
-                document.getElementById('result-name').innerText = data.item_name;
+                document.getElementById('auth-modal').classList.add('hidden');
+                document.getElementById('user-nickname').innerText = currentUser.username;
+                updateBalanceUI(currentUser.balance_stars);
 
-                resultContainer.classList.remove('hidden');
-                closeBtn.classList.remove('hidden');
-            }, 1500);
+            } catch (err) {
+                alert("Ошибка подключения к серверу: " + err.message);
+            }
         }
 
-        function closeModal() {
-            const modal = document.getElementById('drop-modal');
-            modal.classList.add('opacity-0');
-            setTimeout(() => modal.classList.add('hidden'), 300);
+        function updateBalanceUI(val) {
+            document.getElementById('stars-balance').innerText = val;
+            if(currentUser) currentUser.balance_stars = val;
         }
 
-        // Модалка пополнения
-        function openDepositModal() {
-            const modal = document.getElementById('deposit-modal');
-            modal.classList.remove('hidden');
-            setTimeout(() => modal.classList.remove('opacity-0'), 10);
-        }
-
-        function closeDepositModal() {
-            const modal = document.getElementById('deposit-modal');
-            modal.classList.add('opacity-0');
-            setTimeout(() => modal.classList.add('hidden'), 300);
-        }
-
-        // Имитация / Покупка звёзд
-        async function buyStars(amount) {
-            // В продакшене тут вызывается tg.openInvoice()
-            alert(`Инициирована покупка ${amount} ⭐. Начислим вам их для теста!`);
+        // 2. ГЕНЕРАЦІЯ 30 КЕЙСІВ В ІНТЕРФЕЙСІ
+        function renderCases() {
+            const grid = document.getElementById('cases-grid');
+            grid.innerHTML = '';
             
-            currentBalance += amount;
-            await supabase.from('profiles').update({ balance_stars: currentBalance }).eq('telegram_id', telegramId);
-            updateUI();
-            closeDepositModal();
+            for (let i = 1; i <= 30; i++) {
+                const price = i * 15;
+                const caseCard = document.createElement('div');
+                caseCard.className = "bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between hover:border-amber-500/50 transition cursor-pointer";
+                caseCard.onclick = () => openRouletteModal(i, `Кейс #${i}`, price);
+                
+                caseCard.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center text-amber-500 text-xl">
+                            <i class="fa-solid fa-box text-2xl"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-sm">Кейс #${i}</div>
+                            <div class="text-[10px] text-gray-400">Шанс на NFT / Stars</div>
+                        </div>
+                    </div>
+                    <div class="bg-amber-500 text-black text-xs font-black px-3 py-2 rounded-lg flex items-center space-x-1">
+                        <span>${price}</span> <span>⭐</span>
+                    </div>
+                `;
+                grid.appendChild(caseCard);
+            }
         }
 
-        initApp();
+        // 3. РУЛЕТКА ТА АНІМАЦІЯ
+        function openRouletteModal(caseId, name, price) {
+            if(!currentUser) return alert("Сначала авторизуйтесь!");
+            selectedCaseId = caseId;
+            document.getElementById('modal-case-title').innerText = `${name} (${price} ⭐)`;
+            document.getElementById('roulette-result').classList.add('hidden');
+            document.getElementById('start-spin-btn').classList.remove('hidden');
+            document.getElementById('roulette-modal').classList.remove('hidden');
+            
+            // Пре-показ рулетки
+            generateFakeTrack();
+        }
+
+        function closeRouletteModal() {
+            if(isSpinning) return;
+            document.getElementById('roulette-modal').classList.add('hidden');
+        }
+
+        function generateFakeTrack() {
+            const track = document.getElementById('roulette-track');
+            track.style.transition = 'none';
+            track.style.transform = 'translateX(0px)';
+            track.innerHTML = '';
+            
+            const rarities = ['common', 'rare', 'epic', 'legendary', 'nft'];
+            for(let i = 0; i < 50; i++) {
+                const r = rarities[Math.floor(Math.random() * rarities.length)];
+                const card = document.createElement('div');
+                card.className = `roulette-card rarity-${r}`;
+                card.innerHTML = `<i class="fa-solid fa-gem mb-1 text-lg"></i> Item ${i}`;
+                track.appendChild(card);
+            }
+        }
+
+        // Спин і запит на бекенд RPC
+        async function spinRoulette() {
+            if(isSpinning) return;
+            isSpinning = true;
+            document.getElementById('start-spin-btn').classList.add('hidden');
+
+            try {
+                // Викликаємо бекенд RPC для прокрутки та збереження виграшу
+                const { data, error } = await supabase.rpc('open_case_rpc', {
+                    p_user_id: currentUser.id,
+                    p_case_id: selectedCaseId
+                });
+
+                if (error || !data.success) {
+                    alert(data?.message || "Ошибка открытия кейса!");
+                    isSpinning = false;
+                    document.getElementById('start-spin-btn').classList.remove('hidden');
+                    return;
+                }
+
+                // Оновлюємо баланс із сервера
+                updateBalanceUI(data.new_balance);
+
+                // Запускаємо анімацію на виграшний предмет від сервера
+                const track = document.getElementById('roulette-track');
+                const winnerItem = data.dropped_item;
+
+                // Вставляємо виграшний предмет на 45-ту позицію рулетки
+                const cards = track.children;
+                cards[44].className = `roulette-card rarity-${winnerItem.rarity || 'epic'}`;
+                cards[44].innerHTML = `<i class="fa-solid fa-crown mb-1 text-lg"></i> ${winnerItem.name}`;
+
+                // Розрахунок зсуву для центрування
+                const cardWidth = 100; // 90px + 10px margin
+                const targetOffset = -(44 * cardWidth - (track.parentElement.offsetWidth / 2) + 50);
+
+                track.style.transition = 'transform 5s cubic-bezier(0.15, 0.9, 0.15, 1)';
+                track.style.transform = `translateX(${targetOffset}px)`;
+
+                setTimeout(() => {
+                    isSpinning = false;
+                    document.getElementById('result-item-name').innerText = winnerItem.name;
+                    document.getElementById('result-item-value').innerText = `${winnerItem.value} ⭐`;
+                    document.getElementById('roulette-result').classList.remove('hidden');
+                }, 5200);
+
+            } catch (err) {
+                alert("Ошибка: " + err.message);
+                isSpinning = false;
+                document.getElementById('start-spin-btn').classList.remove('hidden');
+            }
+        }
+
+        // 4. ТАБИ ТА ІНВЕНТАР
+        function switchTab(tab) {
+            if (tab === 'cases') {
+                document.getElementById('tab-cases').classList.remove('hidden');
+                document.getElementById('tab-inventory').classList.add('hidden');
+                document.getElementById('tab-cases-btn').className = "flex-1 py-2 rounded-lg font-bold text-xs bg-amber-500 text-black transition";
+                document.getElementById('tab-inventory-btn').className = "flex-1 py-2 rounded-lg font-bold text-xs text-gray-400 transition";
+            } else {
+                document.getElementById('tab-cases').classList.add('hidden');
+                document.getElementById('tab-inventory').classList.remove('hidden');
+                document.getElementById('tab-inventory-btn').className = "flex-1 py-2 rounded-lg font-bold text-xs bg-amber-500 text-black transition";
+                document.getElementById('tab-cases-btn').className = "flex-1 py-2 rounded-lg font-bold text-xs text-gray-400 transition";
+                loadInventory();
+            }
+        }
+
+        async function loadInventory() {
+            if(!currentUser) return;
+            const container = document.getElementById('inventory-grid');
+            container.innerHTML = '<div class="col-span-2 text-center py-6 text-gray-400">Загрузка...</div>';
+
+            const { data, error } = await supabase
+                .from('user_inventory')
+                .select('*, items(*)')
+                .eq('user_id', currentUser.id);
+
+            if (error || !data || data.length === 0) {
+                container.innerHTML = '<div class="col-span-2 text-center py-12 text-gray-500 text-sm">Инвентарь пуст</div>';
+                return;
+            }
+
+            container.innerHTML = '';
+            data.forEach(inv => {
+                const item = inv.items;
+                const card = document.createElement('div');
+                card.className = "bg-gray-900 border border-gray-800 rounded-xl p-3 text-center flex flex-col items-center justify-between";
+                card.innerHTML = `
+                    <div class="text-amber-400 text-2xl mb-2"><i class="fa-solid fa-gem"></i></div>
+                    <div class="font-bold text-xs text-gray-200">${item.name}</div>
+                    <div class="text-[10px] text-amber-400 mb-2">${item.value_stars} ⭐</div>
+                    <button onclick="sellItem(${inv.id}, ${item.value_stars})" class="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[10px] font-bold py-1.5 rounded-lg border border-red-500/20 transition">
+                        Продать
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        async function sellItem(invId, val) {
+            const { data, error } = await supabase.rpc('sell_inventory_item', { p_inv_id: invId, p_user_id: currentUser.id });
+            if(data?.success) {
+                updateBalanceUI(data.new_balance);
+                loadInventory();
+            } else {
+                alert("Ошибка продажи предмета!");
+            }
+        }
+
+        // 5. ВИВІД
+        function openWithdrawModal() { document.getElementById('withdraw-modal').classList.remove('hidden'); }
+        function closeWithdrawModal() { document.getElementById('withdraw-modal').classList.add('hidden'); }
+
+        async function submitWithdraw() {
+            const amount = parseInt(document.getElementById('withdraw-amount').value);
+            if(!amount || amount <= 0) return alert("Укажите правильную сумму!");
+
+            const { data, error } = await supabase.rpc('request_withdraw', {
+                p_user_id: currentUser.id,
+                p_amount: amount
+            });
+
+            if(data?.success) {
+                updateBalanceUI(data.new_balance);
+                closeWithdrawModal();
+                alert("Заявка успешно создана!");
+            } else {
+                alert(data?.message || "Ошибка вывода!");
+            }
+        }
     </script>
 </body>
 </html>
