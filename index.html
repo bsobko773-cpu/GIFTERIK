@@ -213,13 +213,44 @@
 
         // 1. АВТОРИЗАЦІЯ ЧЕРЕЗ БЕКЕНД RPC
         async function loginWithPin() {
-            const nickname = document.getElementById('auth-nickname').value.trim();
-            const pin = document.getElementById('auth-pin').value.trim();
+    const nickname = document.getElementById('auth-nickname').value.trim();
+    const pin = document.getElementById('auth-pin').value.trim();
 
-            if (!nickname || pin.length !== 6) {
-                alert("Введите правильный Никнейм и 6-значный PIN!");
-                return;
-            }
+    if (!nickname || pin.length !== 6) {
+        alert("Введи нік і 6 цифр пін-коду!");
+        return;
+    }
+
+    // Показуємо на екрані, що процес пішов
+    alert("Пробуємо підключитися до бази...");
+
+    try {
+        const { data, error } = await supabase.rpc('auth_by_pin', { p_nickname: nickname, p_pin: pin });
+        
+        if (error) {
+            alert("Помилка Supabase: " + error.message);
+            return;
+        }
+
+        if (!data || !data.success) {
+            alert("Сервер відповів: " + (data?.message || "невідома помилка"));
+            return;
+        }
+
+        currentUser = data.user;
+        localStorage.setItem('app_pin', pin);
+        localStorage.setItem('app_nick', nickname);
+
+        document.getElementById('auth-modal').classList.add('hidden');
+        document.getElementById('user-nickname').innerText = currentUser.username;
+        updateBalanceUI(currentUser.balance_stars);
+        alert("Успішний вхід!");
+
+    } catch (err) {
+        alert("Критична помилка JS: " + err.message);
+    }
+}
+
 
             try {
                 // Виклик безпечної RPC функції авторизації
