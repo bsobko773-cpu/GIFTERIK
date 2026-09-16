@@ -212,7 +212,7 @@
         });
 
         // 1. АВТОРИЗАЦІЯ ЧЕРЕЗ БЕКЕНД RPC
-        async function loginWithPin() {
+        window.loginWithPin = async function() {
     const nickname = document.getElementById('auth-nickname').value.trim();
     const pin = document.getElementById('auth-pin').value.trim();
 
@@ -221,7 +221,6 @@
         return;
     }
 
-    // Показуємо на екрані, що процес пішов
     alert("Пробуємо підключитися до бази...");
 
     try {
