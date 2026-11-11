@@ -76,24 +76,48 @@
 <body class="pb-24">
 
     <!-- МОДАЛЬНЕ ВІКНО АВТОРИЗАЦІЇ (ПІН-КОД) -->
-    <div id="auth-modal" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl">
-            <div class="w-16 h-16 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-                <i class="fa-solid fa-key"></i>
-            </div>
-            <h2 class="text-xl font-bold mb-2">Авторизация</h2>
-            <p class="text-xs text-gray-400 mb-6">Введите Никнейм и уникальный PIN-код, полученный в Telegram-боте (команда /code)</p>
+    <!-- Підключаємо Supabase JS Client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-            <div class="space-y-3 mb-6">
-                <input type="text" id="auth-nickname" placeholder="Ваш Никнейм" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-center focus:outline-none focus:border-amber-500 transition">
-                <input type="password" maxlength="6" id="auth-pin" placeholder="6-значный PIN" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-sm text-center font-mono text-lg tracking-widest focus:outline-none focus:border-amber-500 transition">
-            </div>
+<script>
+  // 1. Ініціалізація (заміни на свої URL та ANON_KEY)
+  const SUPABASE_URL = 'https://твій-проект.supabase.co';
+  const SUPABASE_ANON_KEY = 'твій-anon-key';
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-            <button onclick="loginWithPin()" class="w-full bg-amber-500 hover:bg-amber-600 active:scale-95 text-black font-bold py-3 rounded-xl transition duration-200">
-                Войти в аккаунт
-            </button>
-        </div>
-    </div>
+  // 2. Функція для отримання поточного користувача та його даних
+  async function loadUserData() {
+    // Отримуємо об'єкт авторизованого користувача з Supabase Auth
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.log("Користувач не авторизований!");
+      return;
+    }
+
+    console.log("Авторизовано як:", user.email);
+    console.log("Унікальний Auth ID:", user.id);
+
+    // Звертаємося до твоєї таблиці (наприклад, user_profiles чи gifts) за цим id
+    const { data: profile, error: dbError } = await supabase
+      .from('user_profiles') // підстав свою назву таблиці
+      .select('*')
+      .eq('user_id', user.id) // де user_id дорівнює user.id з Auth
+      .single();
+
+    if (dbError) {
+      console.error("Помилка завантаження даних із таблиці:", dbError.message);
+      return;
+    }
+
+    console.log("Дані користувача з бази:", profile);
+  }
+
+  // Запускаємо перевірку при завантаженні сторінки
+  loadUserData();
+</script>
+
+        
 
     <!-- ХЕДЕР -->
     <header class="bg-gray-900/80 backdrop-blur border-b border-gray-800 sticky top-0 z-40 px-4 py-3 flex items-center justify-between">
