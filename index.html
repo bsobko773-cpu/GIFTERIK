@@ -91,12 +91,12 @@
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.log("Користувач не авторизований!");
+      console.log("Пользователь не авторизован");
       return;
     }
 
-    console.log("Авторизовано як:", user.email);
-    console.log("Унікальний Auth ID:", user.id);
+    console.log("Авторизовано как:", user.email);
+    console.log("Уникальный Auth ID:", user.id);
 
     // Звертаємося до твоєї таблиці (наприклад, user_profiles чи gifts) за цим id
     const { data: profile, error: dbError } = await supabase
@@ -106,11 +106,11 @@
       .single();
 
     if (dbError) {
-      console.error("Помилка завантаження даних із таблиці:", dbError.message);
+      console.error("Ошибка загрузки:", dbError.message);
       return;
     }
 
-    console.log("Дані користувача з бази:", profile);
+    console.log("Данные пользователя:", profile);
   }
 
   // Запускаємо перевірку при завантаженні сторінки
